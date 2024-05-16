@@ -73,7 +73,10 @@ class MainWindow(FluentWindow):
 
         # create listener
         self.isClientProcessRunning = False
+
+        # 监听LOL客户端是否存在
         self.processListener = LolProcessExistenceListener(self)
+        
         self.checkUpdateThread = StoppableThread(
             target=self.checkUpdate, parent=self)
         self.checkNoticeThread = StoppableThread(

@@ -33,7 +33,6 @@ class LolProcessExistenceListener(QThread):
 
             # 如果有客户端正在运行
             if len(pids) != 0:
-
                 # 如果当前没有连接客户端，则是第一个客户端启动了
                 if self.runningPid == 0:
                     self.runningPid = pids[0]

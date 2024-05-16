@@ -3,8 +3,8 @@ import os
 import threading
 
 import pyperclip
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QWidget, QVBoxLayout,
+from PyQt5.QtCore import Qt, pyqtSignal, QSize
+from PyQt5.QtWidgets import (QLabel, QWidget, QVBoxLayout,
                              QSpacerItem, QSizePolicy)
 
 from app.common.qfluentwidgets import (InfoBar, InfoBarPosition, PushButton, SmoothScrollArea,
@@ -26,29 +26,22 @@ class StartInterface(SeraphineInterface):
 
         self.loading = True
 
-        self.processBar = IndeterminateProgressBar(self)
-        self.label1 = QLabel()
-        self.label2 = QLabel()
-        self.label3 = QLabel()
-        self.pushButton = PushButton()
-
-        self.vBoxLayout = QVBoxLayout(self)
-
         self.__initWidget()
         self.__initLayout()
         self.showLoadingPage()
 
     def __initLayout(self):
-
         self.label1.setAlignment(Qt.AlignCenter)
         self.label2.setAlignment(Qt.AlignCenter)
+        self.label3.setAlignment(Qt.AlignCenter)
 
+        self.vBoxLayout = QVBoxLayout(self)
         self.vBoxLayout.addWidget(self.processBar)
         self.vBoxLayout.addItem(
             QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
         self.vBoxLayout.addWidget(self.label1)
         self.vBoxLayout.addSpacing(20)
-        self.vBoxLayout.addWidget(self.pushButton, alignment=Qt.AlignCenter)
+        self.vBoxLayout.addWidget(self.btn_open_client, alignment=Qt.AlignCenter)
         self.vBoxLayout.addWidget(self.label3, alignment=Qt.AlignCenter)
         self.vBoxLayout.addSpacing(20)
         self.vBoxLayout.addWidget(self.label2)
@@ -56,13 +49,22 @@ class StartInterface(SeraphineInterface):
             QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
     def __initWidget(self):
-        self.pushButton.setSizePolicy(
-            QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self.processBar = IndeterminateProgressBar(self)
+
+        # 显示当前状态
+        self.label1 = QLabel(self)
+        self.label2 = QLabel(self)
+        self.label3 = QLabel(self)
+
+        # 启动客户端
+        self.btn_open_client = PushButton(self)
+        self.btn_open_client.setFixedSize(QSize(200, 40))
 
         self.label1.setObjectName('label1')
         self.label2.setObjectName('label2')
         self.label3.setObjectName("label3")
 
+        # TODO(@liangyu) 修改样式用的？
         StyleSheet.START_INTERFACE.apply(self)
         self.__connectSignalToSlot()
 
@@ -75,8 +77,8 @@ class StartInterface(SeraphineInterface):
             f"PID = {connector.pid}\n--app-port = {connector.port}\n--remoting-auth-token = {connector.token}")
         self.label3.setVisible(False)
 
-        self.pushButton.setText(self.tr("Change client connected"))
-        self.pushButton.setIcon(Icon.DUALSCREEN)
+        self.btn_open_client.setText(self.tr("Change client connected"))
+        self.btn_open_client.setIcon(Icon.DUALSCREEN)
 
     def showLoadingPage(self):
         self.processBar.start()
@@ -89,11 +91,11 @@ class StartInterface(SeraphineInterface):
 
         self.label3.setVisible(True)
 
-        self.pushButton.setIcon(Icon.CIRCLERIGHT)
-        self.pushButton.setText(self.tr("Start LOL Client"))
+        self.btn_open_client.setIcon(Icon.CIRCLERIGHT)
+        self.btn_open_client.setText(self.tr("Start LOL Client"))
 
     def __connectSignalToSlot(self):
-        self.pushButton.clicked.connect(self.__onPushButtonClicked)
+        self.btn_open_client.clicked.connect(self.__onPushButtonClicked)
 
     def __onPushButtonClicked(self):
         if self.loading:

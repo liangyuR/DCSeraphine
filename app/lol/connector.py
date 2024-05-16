@@ -157,6 +157,7 @@ class LcuWebSocket():
                 # return
 
     async def runWs(self):
+        # 创建WebSocket连接
         self.session = aiohttp.ClientSession(
             auth=aiohttp.BasicAuth('riot', self.token),
             headers={
@@ -168,6 +169,7 @@ class LcuWebSocket():
         self.ws = await self.session.ws_connect(address, ssl=False)
 
         for event in self.events:
+            # [5, event] 向客户端订阅事件
             await self.ws.send_json([5, event])
 
         while True:
@@ -176,7 +178,9 @@ class LcuWebSocket():
             if msg.type == aiohttp.WSMsgType.TEXT and msg.data != '':
                 data = json.loads(msg.data)[2]
                 self.matchUri(data)
-            elif msg.type == aiohttp.WSMsgType.CLOSED:
+                continue
+
+            if msg.type == aiohttp.WSMsgType.CLOSED:
                 logger.info("WebSocket closed", TAG)
                 break
 
@@ -187,7 +191,7 @@ class LcuWebSocket():
             raise AssertionError(
                 "You should not use OnJsonApiEvent to subscribe to all events. If you wish to debug "
                 "the program, comment out this line.")
-        # 防止阻塞 connector.start()
+        # 创建一个任务来运行WebSocket
         self.task = asyncio.create_task(self.runWs())
 
     async def close(self):
@@ -215,13 +219,22 @@ class LolClientConnector(QObject):
 
     async def start(self, pid):
         self.pid = pid
+
         self.port, self.token, self.server = getPortTokenServerByPid(pid)
+        
         self.semaphore = asyncio.Semaphore(self.maxRefCnt)
 
+        # 初始化与客户端的通信
         self.__initSessions()
+
+        # 判断是否在大陆
         self.__initPlatformInfo()
+
         await self.__initManager()
+
+        # 创建 game 等文件夹
         self.__initFolder()
+
         await self.__runListener()
 
         logger.critical(f"connector started, server: {self.server}", TAG)
@@ -229,24 +242,28 @@ class LolClientConnector(QObject):
     async def __runListener(self):
         self.listener = LcuWebSocket(self.port, self.token)
 
+        # 当召唤师当前的个人信息发生变化时触发
         @self.listener.subscribe(event='OnJsonApiEvent_lol-summoner_v1_current-summoner',
                                  uri='/lol-summoner/v1/current-summoner',
                                  type=('Update',))
         async def onCurrentSummonerProfileChanged(event):
             signalBus.currentSummonerProfileChanged.emit(event['data'])
 
+        # 当游戏状态发生变化时触发
         @self.listener.subscribe(event='OnJsonApiEvent_lol-gameflow_v1_gameflow-phase',
                                  uri='/lol-gameflow/v1/gameflow-phase',
                                  type=('Update',))
         async def onGameFlowPhaseChanged(event):
             signalBus.gameStatusChanged.emit(event['data'])
 
+        # 当英雄选择发生变化时触发
         @self.listener.subscribe(event='OnJsonApiEvent_lol-champ-select_v1_session',
                                  uri='/lol-champ-select/v1/session',
                                  type=('Update',))
         async def onChampSelectChanged(event):
             signalBus.champSelectChanged.emit(event)
 
+        # TODO(@liangyu) DDEBUG
         # @self.listener.subscribe(event='OnJsonApiEvent', type=())
         # async def onDebugListen(event):
         #     print(event)
@@ -342,7 +359,8 @@ class LolClientConnector(QObject):
                 retries += 1
                 time.sleep(.5)
                 continue
-
+            
+            # TODO(@liangyu) 如果是 list 就直接返回？ 为什么？
             if type(result) is list:
                 return result
 
@@ -356,6 +374,7 @@ class LolClientConnector(QObject):
         # 最大重试次数, 抛异常
         raise RetryMaximumAttempts("Exceeded maximum retry attempts.")
 
+    # 获取符文图标
     @retry()
     async def getRuneIcon(self, runeId):
         if runeId == 0:
@@ -371,6 +390,7 @@ class LolClientConnector(QObject):
 
         return icon
 
+    # 获取召唤师信息
     @retry()
     async def getCurrentSummoner(self):
         res = await self.__get("/lol-summoner/v1/current-summoner")
